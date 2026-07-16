@@ -1,0 +1,5 @@
+-r base.txt
+
+langchain>=0.2,<0.3
+langchain-core>=0.2
+ibm-watsonx-ai>=1.0
