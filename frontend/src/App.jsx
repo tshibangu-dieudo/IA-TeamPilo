@@ -7,11 +7,16 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import Login from './pages/login/Login';
 import Register from './pages/register/Register';
+import TeamsList from './pages/teams/TeamsList';
+import TeamDetail from './pages/teams/TeamDetail';
+import ProjectsList from './pages/projects/ProjectsList';
+import ProjectDetail from './pages/projects/ProjectDetail';
+import TasksList from './pages/tasks/TasksList';
+import TaskDetail from './pages/tasks/TaskDetail';
+import TaskCreate from './pages/tasks/TaskCreate';
 
 // Placeholder pages - will be implemented in later sprints
 const Dashboard = () => <div>Dashboard - Coming Soon</div>;
-const Projects = () => <div>Projects - Coming Soon</div>;
-const Tasks = () => <div>Tasks - Coming Soon</div>;
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -25,14 +30,39 @@ function AppRoutes() {
           <Dashboard />
         </ProtectedRoute>
       } />
+      <Route path="/teams" element={
+        <ProtectedRoute>
+          <TeamsList />
+        </ProtectedRoute>
+      } />
+      <Route path="/teams/:id" element={
+        <ProtectedRoute>
+          <TeamDetail />
+        </ProtectedRoute>
+      } />
       <Route path="/projects" element={
         <ProtectedRoute>
-          <Projects />
+          <ProjectsList />
+        </ProtectedRoute>
+      } />
+      <Route path="/projects/:id" element={
+        <ProtectedRoute>
+          <ProjectDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/projects/:projectId/tasks/create" element={
+        <ProtectedRoute>
+          <TaskCreate />
         </ProtectedRoute>
       } />
       <Route path="/tasks" element={
         <ProtectedRoute>
-          <Tasks />
+          <TasksList />
+        </ProtectedRoute>
+      } />
+      <Route path="/tasks/:id" element={
+        <ProtectedRoute>
+          <TaskDetail />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" />} />

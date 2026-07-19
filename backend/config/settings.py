@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.recommendations',
     'apps.notifications',
     'apps.chat',
+    
 ]
 
 MIDDLEWARE = [

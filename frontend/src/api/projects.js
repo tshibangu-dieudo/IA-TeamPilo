@@ -5,9 +5,10 @@
 import client from './client';
 
 export const projectsAPI = {
-  list: () => client.get('/api/projects/'),
-  get: (id) => client.get(`/api/projects/${id}/`),
-  create: (data) => client.post('/api/projects/', data),
-  update: (id, data) => client.put(`/api/projects/${id}/`, data),
-  delete: (id) => client.delete(`/api/projects/${id}/`),
+  list: () => client.get('/api/projects/projects/'),
+  get: (id) => client.get(`/api/projects/projects/${id}/`),
+  create: (data) => client.post('/api/projects/projects/', data),
+  update: (id, data) => client.put(`/api/projects/projects/${id}/`, data),
+  delete: (id) => client.delete(`/api/projects/projects/${id}/`),
+  getMyProjects: () => client.get('/api/projects/my-projects/'),
 };

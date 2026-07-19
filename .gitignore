@@ -1,0 +1,40 @@
+# =========================
+# Python
+# =========================
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment
+.env
+.env.*
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Logs
+*.log
+
+# =========================
+# Node
+# =========================
+node_modules/
+dist/
+npm-debug.log*
+
+# =========================
+# VS Code / IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Windows / macOS
+# =========================
+Thumbs.db
+Desktop.ini
+.DS_Store
