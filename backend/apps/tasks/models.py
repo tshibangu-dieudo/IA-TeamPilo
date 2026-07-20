@@ -143,3 +143,21 @@ class TaskStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.task.title}: {self.previous_status} → {self.new_status}"
+
+
+class TaskSkill(models.Model):
+    """
+    Required skills for a task.
+    See docs/09_Database_Design.md §8.1.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='required_skills')
+    skill = models.ForeignKey('teams.Skill', on_delete=models.CASCADE, related_name='tasks_required')
+
+    class Meta:
+        db_table = 'task_skills'
+        unique_together = ['task', 'skill']
+
+    def __str__(self):
+        return f"{self.task.title} requires {self.skill.name}"
+

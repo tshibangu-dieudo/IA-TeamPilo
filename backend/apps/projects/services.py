@@ -6,7 +6,7 @@ from django.db import models
 from .models import Project
 
 
-def create_project_service(name, description, start_date, end_date, owner, team, status='planning'):
+def create_project_service(name, start_date, end_date, owner, team, description='', status='planning'):
     """
     Create a new project.
     """
@@ -44,7 +44,7 @@ def get_user_projects_service(user):
     Get all projects for a user (owned projects and team projects).
     """
     # Get user's team memberships
-    from teams.models import TeamMembership
+    from apps.teams.models import TeamMembership
     user_team_ids = TeamMembership.objects.filter(user=user).values_list('team_id', flat=True)
     
     # Get projects owned by user or in user's teams

@@ -257,36 +257,42 @@ class PermissionClassTest(TestCase):
     def test_is_admin_permission(self):
         """Test IsAdmin permission class."""
         from .permissions import IsAdmin
-        
-        # Admin user should have permission
-        self.client.force_authenticate(user=self.admin_user)
-        request = self.client.get('/api/auth/users/').request
+        from rest_framework.test import APIRequestFactory
+
+        factory = APIRequestFactory()
         permission = IsAdmin()
+
+        # Admin user should have permission
+        request = factory.get('/api/auth/users/')
+        request.user = self.admin_user
         self.assertTrue(permission.has_permission(request, None))
-        
+
         # Non-admin user should not have permission
-        self.client.force_authenticate(user=self.member_user)
-        request = self.client.get('/api/auth/users/').request
+        request = factory.get('/api/auth/users/')
+        request.user = self.member_user
         self.assertFalse(permission.has_permission(request, None))
-    
+
     def test_is_admin_or_project_manager_permission(self):
         """Test IsAdminOrProjectManager permission class."""
         from .permissions import IsAdminOrProjectManager
-        
-        # Admin should have permission
-        self.client.force_authenticate(user=self.admin_user)
-        request = self.client.get('/api/auth/users/').request
+        from rest_framework.test import APIRequestFactory
+
+        factory = APIRequestFactory()
         permission = IsAdminOrProjectManager()
+
+        # Admin should have permission
+        request = factory.get('/api/auth/users/')
+        request.user = self.admin_user
         self.assertTrue(permission.has_permission(request, None))
-        
+
         # PM should have permission
-        self.client.force_authenticate(user=self.pm_user)
-        request = self.client.get('/api/auth/users/').request
+        request = factory.get('/api/auth/users/')
+        request.user = self.pm_user
         self.assertTrue(permission.has_permission(request, None))
-        
+
         # Member should not have permission
-        self.client.force_authenticate(user=self.member_user)
-        request = self.client.get('/api/auth/users/').request
+        request = factory.get('/api/auth/users/')
+        request.user = self.member_user
         self.assertFalse(permission.has_permission(request, None))
     
     def test_is_admin_or_owner_object_permission(self):

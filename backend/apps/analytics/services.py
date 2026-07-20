@@ -60,13 +60,15 @@ def calculate_workload_service(user, project, sprint_start_date, sprint_end_date
         task.estimated_effort_hours for task in open_tasks
     )
     
-    # Calculate workload percentage
+    # Calculate workload percentage — round to 2 dp for consistent comparisons
+    # (avoids float imprecision, e.g. 92/80*100 = 115.00000000000001)
     capacity_for_sprint = weekly_capacity * sprint_length_weeks
     if capacity_for_sprint == 0:
         workload_percentage = 0
     else:
-        workload_percentage = (total_estimated_hours / capacity_for_sprint) * 100
-    
+        workload_percentage = round(
+            (float(total_estimated_hours) / float(capacity_for_sprint)) * 100, 2
+        )
     # Determine status based on BR-1.3 thresholds
     if workload_percentage <= 60:
         status = 'underloaded'
@@ -131,7 +133,7 @@ def check_overload_alert_service(user, project, sprint_start_date, sprint_end_da
         return True
     
     # Check if workload increased by 15 percentage points
-    workload_increase = current_workload - recent_snapshot.workload_percentage
+    workload_increase = current_workload - float(recent_snapshot.workload_percentage)
     if workload_increase >= 15:
         return True
     
@@ -213,12 +215,12 @@ def calculate_risk_score_service(project):
     
     # Deadline Proximity Factor: ratio of remaining work to remaining time
     now = timezone.now().date()
-    if project.deadline and project.deadline > now:
-        remaining_days = (project.deadline - now).days
+    if project.end_date and project.end_date > now:
+        remaining_days = (project.end_date - now).days
         if remaining_days > 0:
             # Remaining work: sum of estimated effort for open tasks
-            remaining_work = sum(task.estimated_effort_hours for task in open_tasks)
-            
+            remaining_work = sum(float(task.estimated_effort_hours) for task in open_tasks)
+
             # Simple ratio: remaining work / remaining days (normalized to 0-100)
             # This is a simplified version - full formula in AI Architecture
             deadline_proximity_factor = min((remaining_work / remaining_days) * 2, 100)

@@ -12,7 +12,7 @@ from .services import (
     create_project_service, update_project_service, delete_project_service,
     get_user_projects_service, get_team_projects_service, get_project_by_id_service
 )
-from teams.models import Team, TeamMembership
+from apps.teams.models import Team, TeamMembership
 
 User = get_user_model()
 
@@ -223,7 +223,9 @@ class ProjectsAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/projects/projects/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
     
     def test_retrieve_project_endpoint(self):
         """Test retrieving a project endpoint."""
@@ -258,4 +260,6 @@ class ProjectsAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/projects/my-projects/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)

@@ -31,17 +31,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return ProjectCreateSerializer
         return ProjectSerializer
     
-    def perform_create(self, serializer):
-        return create_project_service(
+    def create(self, request, *args, **kwargs):
+        serializer = ProjectCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = create_project_service(
             name=serializer.validated_data['name'],
             description=serializer.validated_data.get('description', ''),
             start_date=serializer.validated_data['start_date'],
             end_date=serializer.validated_data['end_date'],
-            owner=self.request.user,
+            owner=request.user,
             team=serializer.validated_data['team'],
-            status=serializer.validated_data.get('status', 'planning')
+            status=serializer.validated_data.get('status', 'planning'),
         )
-    
+        return Response(
+            ProjectDetailSerializer(project).data,
+            status=status.HTTP_201_CREATED,
+        )
+
     def perform_update(self, serializer):
         return update_project_service(serializer.instance, **serializer.validated_data)
     

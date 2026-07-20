@@ -16,9 +16,12 @@ import TaskDetail from './pages/tasks/TaskDetail';
 import TaskCreate from './pages/tasks/TaskCreate';
 import WorkloadDashboard from './pages/analytics/WorkloadDashboard';
 import RiskDashboard from './pages/analytics/RiskDashboard';
+import RecommendationsList from './pages/recommendations/RecommendationsList';
+import RecommendationDetail from './pages/recommendations/RecommendationDetail';
 
 // Placeholder pages - will be implemented in later sprints
 const Dashboard = () => <div>Dashboard - Coming Soon</div>;
+
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -77,7 +80,18 @@ function AppRoutes() {
           <RiskDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/recommendations" element={
+        <ProtectedRoute>
+          <RecommendationsList />
+        </ProtectedRoute>
+      } />
+      <Route path="/recommendations/:id" element={
+        <ProtectedRoute>
+          <RecommendationDetail />
+        </ProtectedRoute>
+      } />
       <Route path="*" element={<Navigate to="/" />} />
+
     </Routes>
   );
 }

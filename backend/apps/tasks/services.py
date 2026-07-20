@@ -135,9 +135,17 @@ def _has_circular_dependency(task_id, depends_on_id, visited=None):
     DFS check: would adding depends_on_id as a prerequisite of task_id
     create a cycle?
     BR-8.1: reject any configuration that creates a circular reference.
+
+    Both task_id and depends_on_id must be str(uuid) throughout — the
+    .values_list() call returns UUID objects from the DB, so we normalise
+    every value to str() before comparing or recursing to avoid a silent
+    type mismatch that would cause cycles to go undetected.
     """
     if visited is None:
         visited = set()
+    # Normalise to str so UUID objects and str keys compare correctly
+    task_id = str(task_id)
+    depends_on_id = str(depends_on_id)
     if depends_on_id == task_id:
         return True
     if depends_on_id in visited:
@@ -146,7 +154,7 @@ def _has_circular_dependency(task_id, depends_on_id, visited=None):
     for dep in TaskDependency.objects.filter(task_id=depends_on_id).values_list(
         'depends_on_task_id', flat=True
     ):
-        if _has_circular_dependency(task_id, dep, visited):
+        if _has_circular_dependency(task_id, str(dep), visited):
             return True
     return False
 

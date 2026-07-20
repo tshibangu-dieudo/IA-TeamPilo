@@ -26,6 +26,13 @@ class WorkloadSnapshot(models.Model):
         on_delete=models.CASCADE,
         related_name='workload_snapshots',
     )
+    project = models.ForeignKey(
+        'projects.Project',
+        on_delete=models.CASCADE,
+        related_name='workload_snapshots',
+        null=True,
+        blank=True,
+    )
     workload_percentage = models.DecimalField(max_digits=5, decimal_places=2)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES)
     computed_at = models.DateTimeField(auto_now_add=True)
@@ -38,7 +45,7 @@ class WorkloadSnapshot(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.full_name}: {self.workload_percentage}% ({self.status})"
+        return f"{self.user.username}: {self.workload_percentage}% ({self.status})"
 
 
 class RiskScore(models.Model):

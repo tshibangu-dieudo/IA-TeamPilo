@@ -35,19 +35,21 @@ class ProjectSerializer(serializers.ModelSerializer):
 class ProjectCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating projects.
+    The owner is always set server-side from the authenticated user (see views.py),
+    so it is excluded from the input payload.
     """
     class Meta:
         model = Project
-        fields = ['name', 'description', 'start_date', 'end_date', 'status', 'owner', 'team']
-    
+        fields = ['name', 'description', 'start_date', 'end_date', 'status', 'team']
+
     def validate(self, attrs):
         """Validate that end_date is after start_date."""
         start_date = attrs.get('start_date')
         end_date = attrs.get('end_date')
-        
+
         if start_date and end_date and end_date < start_date:
             raise serializers.ValidationError({'end_date': 'End date must be after start date.'})
-        
+
         return attrs
 
 

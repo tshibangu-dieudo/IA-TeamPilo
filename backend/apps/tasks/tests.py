@@ -383,14 +383,18 @@ class TaskAPITest(TestCase):
         self._auth(self.pm)
         response = self.client.get(f'/api/tasks/{task.id}/history/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertGreaterEqual(len(results), 1)
 
     def test_my_tasks(self):
         make_task(self.project, assignee=self.member)
         self._auth(self.member)
         response = self.client.get('/api/tasks/me/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
 
     def test_unauthenticated_request_rejected(self):
         response = self.client.get('/api/tasks/me/')

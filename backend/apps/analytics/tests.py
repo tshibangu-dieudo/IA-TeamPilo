@@ -23,13 +23,17 @@ from .services import (
 
 def make_user(email, role='team_member', weekly_capacity=40):
     """Helper to create a user."""
-    return User.objects.create_user(
+    username = email.split('@')[0]
+    user = User.objects.create_user(
+        username=username,
         email=email,
         password='testpass123',
-        full_name=f'Test User {email}',
         role=role,
-        weekly_capacity_hours=weekly_capacity,
     )
+    # weekly_capacity_hours is not a DB field; attach it as a transient attribute
+    # so the analytics services can read it via getattr(user, 'weekly_capacity_hours', 40)
+    user.weekly_capacity_hours = weekly_capacity
+    return user
 
 
 def make_team(name):
@@ -39,12 +43,13 @@ def make_team(name):
 
 def make_project(team, owner, deadline_days=30):
     """Helper to create a project."""
-    deadline = timezone.now().date() + timedelta(days=deadline_days)
+    today = timezone.now().date()
     return Project.objects.create(
         name=f'Project {team.name}',
         team=team,
         owner=owner,
-        deadline=deadline,
+        start_date=today,
+        end_date=today + timedelta(days=deadline_days),
     )
 
 
@@ -54,7 +59,7 @@ def make_task(project, assignee, estimated_hours, deadline_offset=7):
     return Task.objects.create(
         project=project,
         assignee=assignee,
-        title=f'Task for {assignee.full_name}',
+        title=f'Task for {assignee.username}',
         description='Test task',
         priority='medium',
         status='todo',

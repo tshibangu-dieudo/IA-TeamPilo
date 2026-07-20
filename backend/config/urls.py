@@ -4,12 +4,14 @@ Generated from .ai/architecture.md specifications.
 """
 from django.contrib import admin
 from django.urls import path, include
+from apps.tasks.views import ProjectTaskListCreateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.accounts.urls')),
     path('api/teams/', include('apps.teams.urls')),
     path('api/projects/', include('apps.projects.urls')),
+    path('api/projects/<uuid:project_id>/tasks/', ProjectTaskListCreateView.as_view(), name='project_tasks'),
     path('api/tasks/', include('apps.tasks.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/recommendations/', include('apps.recommendations.urls')),

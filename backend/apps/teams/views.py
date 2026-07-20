@@ -34,14 +34,19 @@ class TeamViewSet(viewsets.ModelViewSet):
             return TeamDetailSerializer
         return TeamSerializer
     
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         team = create_team_service(
             name=serializer.validated_data['name'],
             description=serializer.validated_data.get('description', '')
         )
         # Creator becomes team lead
-        add_team_member_service(team, self.request.user, role='lead')
-        return team
+        add_team_member_service(team, request.user, role='lead')
+        return Response(
+            TeamDetailSerializer(team).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SkillViewSet(viewsets.ModelViewSet):

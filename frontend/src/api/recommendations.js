@@ -5,8 +5,21 @@
 import client from './client';
 
 export const recommendationsAPI = {
-  list: () => client.get('/api/recommendations/'),
+  // GET /api/recommendations/
+  list: (status = 'pending') => client.get(`/api/recommendations/?status=${status}`),
+  
+  // GET /api/recommendations/project/{project_id}/
+  listByProject: (projectId, status = '') => client.get(`/api/recommendations/project/${projectId}/${status ? `?status=${status}` : ''}`),
+  
+  // GET /api/recommendations/{id}/
   get: (id) => client.get(`/api/recommendations/${id}/`),
-  accept: (id) => client.post(`/api/recommendations/${id}/accept/`),
-  reject: (id) => client.post(`/api/recommendations/${id}/reject/`),
+  
+  // POST /api/recommendations/generate/
+  generate: (projectId) => client.post('/api/recommendations/generate/', { project_id: projectId }),
+  
+  // PATCH /api/recommendations/{id}/accept/
+  accept: (id) => client.patch(`/api/recommendations/${id}/accept/`),
+  
+  // PATCH /api/recommendations/{id}/dismiss/
+  dismiss: (id) => client.patch(`/api/recommendations/${id}/dismiss/`),
 };

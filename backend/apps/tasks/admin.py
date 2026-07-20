@@ -2,7 +2,7 @@
 Admin configuration for tasks app.
 """
 from django.contrib import admin
-from .models import Task, TaskDependency, TaskStatusHistory
+from .models import Task, TaskDependency, TaskStatusHistory, TaskSkill
 
 
 @admin.register(Task)
@@ -33,3 +33,11 @@ class TaskStatusHistoryAdmin(admin.ModelAdmin):
     search_fields = ['task__title', 'changed_by__username']
     readonly_fields = ['id', 'created_at', 'changed_at']
     raw_id_fields = ['task', 'changed_by']
+
+
+@admin.register(TaskSkill)
+class TaskSkillAdmin(admin.ModelAdmin):
+    list_display = ['task', 'skill']
+    search_fields = ['task__title', 'skill__name']
+    raw_id_fields = ['task', 'skill']
+

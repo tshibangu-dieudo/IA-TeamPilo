@@ -165,7 +165,9 @@ class TeamsAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/teams/teams/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
     
     def test_retrieve_team_endpoint(self):
         """Test retrieving a team endpoint."""
@@ -199,4 +201,6 @@ class TeamsAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/teams/my-teams/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        # The endpoint uses DRF pagination — unwrap 'results' if present
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
