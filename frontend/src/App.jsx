@@ -14,6 +14,8 @@ import ProjectDetail from './pages/projects/ProjectDetail';
 import TasksList from './pages/tasks/TasksList';
 import TaskDetail from './pages/tasks/TaskDetail';
 import TaskCreate from './pages/tasks/TaskCreate';
+import WorkloadDashboard from './pages/analytics/WorkloadDashboard';
+import RiskDashboard from './pages/analytics/RiskDashboard';
 
 // Placeholder pages - will be implemented in later sprints
 const Dashboard = () => <div>Dashboard - Coming Soon</div>;
@@ -63,6 +65,16 @@ function AppRoutes() {
       <Route path="/tasks/:id" element={
         <ProtectedRoute>
           <TaskDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics/workload" element={
+        <ProtectedRoute>
+          <WorkloadDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics/risk/:projectId" element={
+        <ProtectedRoute>
+          <RiskDashboard />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" />} />

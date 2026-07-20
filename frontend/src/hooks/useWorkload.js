@@ -28,5 +28,17 @@ export const useWorkload = (userId) => {
     }
   };
 
-  return { data, loading, error, refetch: fetchWorkload };
+  const fetchWorkloadHistory = async () => {
+    try {
+      setLoading(true);
+      const response = await analyticsAPI.getWorkloadHistory(userId);
+      setData(response.data);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { data, loading, error, refetch: fetchWorkload, fetchHistory: fetchWorkloadHistory };
 };

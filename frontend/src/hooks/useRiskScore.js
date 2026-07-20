@@ -28,5 +28,17 @@ export const useRiskScore = (projectId) => {
     }
   };
 
-  return { data, loading, error, refetch: fetchRiskScore };
+  const fetchRiskHistory = async () => {
+    try {
+      setLoading(true);
+      const response = await analyticsAPI.getRiskHistory(projectId);
+      setData(response.data);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { data, loading, error, refetch: fetchRiskScore, fetchHistory: fetchRiskHistory };
 };

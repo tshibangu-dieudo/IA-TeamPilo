@@ -144,7 +144,6 @@ The `docs/` folder contains the complete 18-chapter specification, written befor
 
 - **[Tshibangu Dieudo]** — Full-stack development, project architecture
 
-## 16. License
 
 ## 16. License
 
