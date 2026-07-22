@@ -18,6 +18,8 @@ import WorkloadDashboard from './pages/analytics/WorkloadDashboard';
 import RiskDashboard from './pages/analytics/RiskDashboard';
 import RecommendationsList from './pages/recommendations/RecommendationsList';
 import RecommendationDetail from './pages/recommendations/RecommendationDetail';
+import NotificationsPage from './pages/notifications/NotificationsPage';
+import ChatPage from './pages/chat/ChatPage';
 
 // Placeholder pages - will be implemented in later sprints
 const Dashboard = () => <div>Dashboard - Coming Soon</div>;
@@ -88,6 +90,16 @@ function AppRoutes() {
       <Route path="/recommendations/:id" element={
         <ProtectedRoute>
           <RecommendationDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/notifications" element={
+        <ProtectedRoute>
+          <NotificationsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <ChatPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" />} />

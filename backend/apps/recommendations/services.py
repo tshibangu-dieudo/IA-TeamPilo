@@ -11,7 +11,7 @@ from apps.accounts.models import User, UserSkill
 from apps.projects.models import Project
 from apps.tasks.models import Task, TaskStatusHistory, TaskSkill
 from apps.analytics.services import calculate_workload_service
-from apps.notifications.models import Notification
+from apps.notifications.services import create_notification_service
 from ai_engine.recommendation_service import generate_recommendation_justification
 from .models import Recommendation
 
@@ -176,13 +176,13 @@ def create_recommendation_and_notify(project, task, current_assignee, suggested_
     )
     
     # Notify PM in-app (FR-NOTIF-002)
-    Notification.objects.create(
+    create_notification_service(
         user=project.owner,
         notification_type='recommendation',
         title='New Recommendation Generated',
         message=f"New recommendation generated for project '{project.name}': {title}",
         project=project,
-        task=task
+        task=task,
     )
     
     return recommendation
@@ -228,13 +228,16 @@ def generate_recommendations_for_project_service(project):
                 
                 if not candidates:
                     # BR-5.2: Skill gap alert when no candidate can take the task
-                    Notification.objects.create(
+                    create_notification_service(
                         user=project.owner,
                         notification_type='overload_alert',
                         title='Skill Gap Alert',
-                        message=f"No matching skill candidate is available to offload task '{task.title}' from overloaded user {overloaded_user.username}.",
+                        message=(
+                            f"No matching skill candidate is available to offload task "
+                            f"'{task.title}' from overloaded user {overloaded_user.username}."
+                        ),
                         project=project,
-                        task=task
+                        task=task,
                     )
                     continue
                     
@@ -495,7 +498,7 @@ def generate_recommendations_for_project_service(project):
             candidate_skills=[],
             task_title="Entire Project",
             task_hours=0,
-            task_deadline=project.deadline,
+            task_deadline=project.end_date,
             candidate_rank_reason="escalated project-wide risk indices"
         )
         if reco:
@@ -546,13 +549,16 @@ def accept_recommendation_service(recommendation, user):
             )
             
             # Notify new assignee (FR-NOTIF-001)
-            Notification.objects.create(
+            create_notification_service(
                 user=suggested,
                 notification_type='task_reassigned',
                 title='New Task Assigned',
-                message=f"Task '{task.title}' has been reassigned to you from {old_assignee.username if old_assignee else 'Unassigned'}.",
+                message=(
+                    f"Task '{task.title}' has been reassigned to you from "
+                    f"{old_assignee.username if old_assignee else 'Unassigned'}."
+                ),
                 project=recommendation.project,
-                task=task
+                task=task,
             )
             
     return recommendation

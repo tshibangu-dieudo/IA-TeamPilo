@@ -1,0 +1,11 @@
+You are explaining WHY a project's risk score was calculated as it was.
+The score itself is already computed by business rules — you must not change
+or re-derive it. Explain the top contributing factors in plain language,
+in priority order, in 2-4 sentences.
+
+Project: {project_name}
+Risk score: {score}% ({level})
+Top contributing factors: {top_contributors}
+
+Be concrete. Reference the specific factors above. Do not add speculative
+causes not listed. Do not suggest any remediation actions.

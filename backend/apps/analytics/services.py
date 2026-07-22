@@ -86,18 +86,42 @@ def create_workload_snapshot_service(user, project, sprint_start_date, sprint_en
     """
     Create a workload snapshot for a user.
     Stores the calculated workload % and status.
+    After saving the snapshot, checks if an overload alert should fire (BR-1.4)
+    and dispatches the notification through create_notification_service (FR-NOTIF-003 type:
+    overload_alert) if the check_overload_alert_service gate passes.
     """
     workload_percentage, status = calculate_workload_service(
         user, project, sprint_start_date, sprint_end_date
     )
-    
+
     snapshot = WorkloadSnapshot.objects.create(
         user=user,
         project=project,
         workload_percentage=workload_percentage,
         status=status,
     )
-    
+
+    # Fire overload alert notification if the BR-1.4 gate passes.
+    # check_overload_alert_service reads the snapshot we just saved, so we call it after
+    # the snapshot is committed.
+    if status in ('overloaded', 'critically_overloaded'):
+        should_alert = check_overload_alert_service(
+            user, project, sprint_start_date, sprint_end_date
+        )
+        if should_alert:
+            from apps.notifications.services import create_notification_service
+            create_notification_service(
+                user=user,
+                notification_type='overload_alert',
+                title='Workload Overload Alert',
+                message=(
+                    f"{user.username} is currently at {workload_percentage:.0f}% workload "
+                    f"({status.replace('_', ' ').title()}) on project '{project.name}'."
+                ),
+                project=project,
+                task=None,
+            )
+
     return snapshot
 
 
@@ -276,7 +300,36 @@ def calculate_risk_score_service(project):
         historical_velocity_factor=historical_velocity_factor,
         explanation_text=explanation_text,
     )
-    
+
+    # Notify PM and Executive Managers when risk reaches Critical (FR-NOTIF-004, BR-6.1)
+    if level == 'critical':
+        from apps.notifications.services import create_notification_service
+        risk_title = "Project Risk: Critical"
+        risk_message = (
+            f"Project '{project.name}' has reached a Critical risk level "
+            f"({risk_score:.1f}%). Immediate attention required."
+        )
+        # Notify PM (project owner)
+        create_notification_service(
+            user=project.owner,
+            notification_type='risk_alert',
+            title=risk_title,
+            message=risk_message,
+            project=project,
+            task=None,
+        )
+        # Notify all Executive Managers (role='executive')
+        executives = User.objects.filter(role='executive')
+        for executive in executives:
+            create_notification_service(
+                user=executive,
+                notification_type='risk_alert',
+                title=risk_title,
+                message=risk_message,
+                project=project,
+                task=None,
+            )
+
     return risk_score_obj
 
 
