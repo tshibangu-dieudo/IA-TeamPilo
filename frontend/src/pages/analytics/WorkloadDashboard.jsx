@@ -94,7 +94,8 @@ export default function WorkloadDashboard() {
         </div>
       )}
 
-      {view === 'individual' && workload && (
+      {view === 'individual' && (
+        workload ? (
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Your Current Workload</h2>
           <div className="space-y-6">
@@ -148,6 +149,11 @@ export default function WorkloadDashboard() {
             ) : null}
           </div>
         </div>
+        ) : (
+          <div className="bg-white shadow rounded-lg p-6 text-center">
+            <p className="text-gray-500">No workload snapshot available yet. Data will appear once tasks have been assigned and snapshots calculated.</p>
+          </div>
+        )
       )}
 
       {view === 'team' && (

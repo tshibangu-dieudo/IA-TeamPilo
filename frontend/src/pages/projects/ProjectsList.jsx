@@ -31,7 +31,8 @@ export default function ProjectsList() {
   const loadProjects = async () => {
     try {
       const response = await projectsAPI.getMyProjects();
-      setProjects(response.data);
+      const data = response.data;
+      setProjects(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       setError('Failed to load projects');
     } finally {
@@ -42,7 +43,8 @@ export default function ProjectsList() {
   const loadTeams = async () => {
     try {
       const response = await teamsAPI.getMyTeams();
-      setTeams(response.data);
+      const data = response.data;
+      setTeams(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       setError('Failed to load teams');
     }

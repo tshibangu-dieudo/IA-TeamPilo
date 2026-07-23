@@ -21,7 +21,8 @@ export default function TasksList() {
   const loadTasks = async () => {
     try {
       const response = await tasksAPI.getMyTasks();
-      setTasks(response.data);
+      const data = response.data;
+      setTasks(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       setError('Failed to load tasks');
     } finally {

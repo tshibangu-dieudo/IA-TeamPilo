@@ -26,14 +26,18 @@ export default function RiskDashboard() {
       setLoading(true);
       const response = await analyticsAPI.getRiskScore(projectId);
       setRiskScore(response.data);
-      
-      // Load history
-      const historyResponse = await analyticsAPI.getRiskHistory(projectId);
-      setRiskHistory(historyResponse.data);
     } catch (err) {
       setError('Failed to load risk score data');
     } finally {
       setLoading(false);
+    }
+    // Load history separately so a history failure doesn't mask the main score
+    try {
+      const historyResponse = await analyticsAPI.getRiskHistory(projectId);
+      const histData = historyResponse.data;
+      setRiskHistory(Array.isArray(histData) ? histData : (histData.results ?? []));
+    } catch {
+      // History is optional; non-fatal
     }
   };
 
@@ -187,7 +191,8 @@ export default function RiskDashboard() {
         </div>
       </div>
 
-      {showHistory && riskHistory.length > 0 && (
+      {showHistory && (
+        riskHistory.length > 0 ? (
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Risk Score History</h2>
           <div className="space-y-2">
@@ -209,6 +214,11 @@ export default function RiskDashboard() {
             ))}
           </div>
         </div>
+        ) : (
+          <div className="bg-white shadow rounded-lg p-6 text-center">
+            <p className="text-gray-500">No risk score history available yet.</p>
+          </div>
+        )
       )}
 
       {riskScore.level === 'critical' && (

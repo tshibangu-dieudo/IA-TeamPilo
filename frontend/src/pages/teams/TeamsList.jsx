@@ -22,7 +22,8 @@ export default function TeamsList() {
   const loadTeams = async () => {
     try {
       const response = await teamsAPI.getMyTeams();
-      setTeams(response.data);
+      const data = response.data;
+      setTeams(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       setError('Failed to load teams');
     } finally {

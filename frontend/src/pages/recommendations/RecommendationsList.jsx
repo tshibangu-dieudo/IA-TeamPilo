@@ -46,6 +46,10 @@ export default function RecommendationsList() {
       
       // If history tab, filter out pending recommendations
       let data = response.data;
+      // Handle paginated ({ count, results }) and flat array responses
+      if (!Array.isArray(data)) {
+        data = data.results ?? [];
+      }
       if (activeTab === 'history') {
         data = data.filter(r => r.status !== 'pending');
       }
@@ -189,7 +193,7 @@ export default function RecommendationsList() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Pending Action ({activeTab === 'pending' ? recommendations.length : '?'})
+            Pending Action ({activeTab === 'pending' ? recommendations.length : ''})
           </button>
           <button
             onClick={() => setActiveTab('history')}
