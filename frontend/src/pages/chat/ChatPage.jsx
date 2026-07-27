@@ -14,11 +14,12 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { chatAPI } from '../../api/chat';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 // ------------------------------------------------------------------ helpers
 const GENERATED_BY_LABELS = {
   granite: 'IBM Granite',
-  fallback_template: 'Fallback (AI unavailable)',
+  fallback_template: 'Données insuffisantes',
 };
 
 function formatTime(iso) {
@@ -108,7 +109,7 @@ export default function ChatPage() {
       const data = res.data;
       setConversations(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
-      setError('Failed to load conversations.');
+      setError(getErrorMessage(err, { fallback: 'Impossible de charger les conversations.' }));
     } finally {
       setLoadingConvs(false);
     }
@@ -123,8 +124,8 @@ export default function ChatPage() {
     try {
       const res = await chatAPI.getConversation(convId);
       setMessages(res.data.messages ?? []);
-    } catch {
-      setError('Failed to load conversation.');
+    } catch (err) {
+      setError(getErrorMessage(err, { fallback: 'Impossible de charger la conversation.' }));
     } finally {
       setLoadingMessages(false);
     }
@@ -177,7 +178,7 @@ export default function ChatPage() {
 
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
-      setError('Failed to send message. Please try again.');
+      setError(getErrorMessage(err, { fallback: 'Échec de l\'envoi du message. Veuillez réessayer.' }));
     } finally {
       setSending(false);
       textareaRef.current?.focus();
@@ -200,8 +201,8 @@ export default function ChatPage() {
         setMessages([]);
       }
       setConversations((prev) => prev.filter((c) => c.id !== convId));
-    } catch {
-      setError('Failed to delete conversation.');
+    } catch (err) {
+      setError(getErrorMessage(err, { action: 'delete', fallback: 'Impossible de supprimer la conversation.' }));
     }
   }
 
@@ -259,15 +260,27 @@ export default function ChatPage() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="px-6 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-semibold text-gray-900">
-              {activeConvId
-                ? (conversations.find((c) => c.id === activeConvId)?.title || 'Conversation')
-                : 'New conversation'}
-            </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Ask about workload, risks, tasks, or recommendations for your projects.
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.history.back()}
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+              aria-label="Back to dashboard"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </button>
+            <div>
+              <h1 className="text-base font-semibold text-gray-900">
+                {activeConvId
+                  ? (conversations.find((c) => c.id === activeConvId)?.title || 'Conversation')
+                  : 'New conversation'}
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Ask about workload, risks, tasks, or recommendations for your projects.
+              </p>
+            </div>
           </div>
         </div>
 

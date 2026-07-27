@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { analyticsAPI } from '../../api/analytics';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function RiskDashboard() {
   const { projectId } = useParams();
@@ -27,7 +28,7 @@ export default function RiskDashboard() {
       const response = await analyticsAPI.getRiskScore(projectId);
       setRiskScore(response.data);
     } catch (err) {
-      setError('Failed to load risk score data');
+      setError(getErrorMessage(err, { resource: 'project', fallback: 'Impossible de charger les données d\'analyse de risque.' }));
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ export default function RiskDashboard() {
 
   if (loading) return <div className="text-center py-8">Loading risk score...</div>;
 
-  if (!riskScore) return <div className="text-center py-8">Risk score not found</div>;
+  if (!riskScore) return <div className="text-center py-8">Score de risque introuvable</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

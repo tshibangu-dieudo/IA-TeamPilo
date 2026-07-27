@@ -58,8 +58,8 @@ export default function NotificationsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">Failed to load notifications. Please refresh the page.</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-red-600 font-medium">{typeof error === 'string' ? error : 'Impossible de charger les notifications.'}</p>
       </div>
     );
   }

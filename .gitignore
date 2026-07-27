@@ -39,3 +39,9 @@ npm-debug.log*
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# =========================
+# Development Notes
+# =========================
+dev-notes/
+ 

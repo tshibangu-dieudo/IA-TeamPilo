@@ -14,6 +14,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { notificationsAPI } from '../api/notifications';
+import { getErrorMessage } from '../utils/errorMessage';
 
 const POLL_INTERVAL_MS = 30_000; // 30 seconds — within the 15–30s spec range
 
@@ -26,14 +27,12 @@ export const useNotifications = () => {
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await notificationsAPI.list();
-      // Handle both paginated ({ results: [...] }) and non-paginated responses
       const data = response.data;
       setNotifications(Array.isArray(data) ? data : (data.results ?? []));
       setError(null);
     } catch (err) {
-      setError(err);
+      setError(getErrorMessage(err, { fallback: 'Impossible de charger les notifications.' }));
     } finally {
-      // Only clear the initial loading spinner once
       if (!initialFetchDone.current) {
         setLoading(false);
         initialFetchDone.current = true;

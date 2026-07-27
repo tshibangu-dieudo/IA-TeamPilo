@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { dashboardAPI } from '../../api/dashboard';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 // ------------------------------------------------------------------ helpers
 
@@ -407,7 +408,7 @@ export default function Dashboard() {
   useEffect(() => {
     dashboardAPI.getSummary()
       .then((res) => { setSummary(res.data); })
-      .catch((err) => { setError('Failed to load dashboard data.'); })
+      .catch((err) => { setError(getErrorMessage(err, { fallback: 'Impossible de charger le tableau de bord.' })); })
       .finally(() => { setLoading(false); });
   }, []);
 

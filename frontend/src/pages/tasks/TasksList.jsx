@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tasksAPI } from '../../api/tasks';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function TasksList() {
   const [tasks, setTasks] = useState([]);
@@ -24,7 +25,7 @@ export default function TasksList() {
       const data = response.data;
       setTasks(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
-      setError('Failed to load tasks');
+      setError(getErrorMessage(err, { resource: 'task', fallback: 'Impossible de charger vos tâches.' }));
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export default function TasksList() {
       await tasksAPI.updateStatus(taskId, { status: newStatus });
       loadTasks();
     } catch (err) {
-      setError('Failed to update task status');
+      setError(getErrorMessage(err, { action: 'update', fallback: 'Impossible de mettre à jour le statut de la tâche.' }));
     }
   };
 

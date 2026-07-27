@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { analyticsAPI } from '../../api/analytics';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function WorkloadDashboard() {
   const { user } = useAuth();
@@ -33,7 +34,7 @@ export default function WorkloadDashboard() {
         // For now, we'll skip team view if team_id is not available
       }
     } catch (err) {
-      setError('Failed to load workload data');
+      setError(getErrorMessage(err, { fallback: 'Impossible de charger la charge de travail.' }));
     } finally {
       setLoading(false);
     }

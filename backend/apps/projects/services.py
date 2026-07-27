@@ -41,9 +41,19 @@ def delete_project_service(project):
 
 def get_user_projects_service(user):
     """
-    Get all projects for a user (owned projects and team projects).
+    Get all projects for a user.
+    
+    BR-7.1: Data Visibility Scope
+    - Administrator: All organizational data
+    - Executive Manager: Read-only cross-project view of all projects
+    - Project Manager: Projects they own or are assigned to manage
+    - Team Member: Only projects in their teams
     """
-    # Get user's team memberships
+    # Admin and Executive see ALL projects (BR-7.1)
+    if user.role in ['admin', 'executive']:
+        return Project.objects.all().select_related('owner', 'team').distinct()
+    
+    # PM and Team Members see owned projects and team projects
     from apps.teams.models import TeamMembership
     user_team_ids = TeamMembership.objects.filter(user=user).values_list('team_id', flat=True)
     

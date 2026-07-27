@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function Register() {
     password_confirm: '',
     first_name: '',
     last_name: '',
+    role: 'team_member',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,12 +39,10 @@ export default function Register() {
       await register(formData);
       navigate('/');
     } catch (err) {
-      const errorMessage = err.response?.data?.password?.[0] || 
-                          err.response?.data?.username?.[0] ||
-                          err.response?.data?.email?.[0] ||
-                          err.response?.data?.detail ||
-                          'Registration failed. Please try again.';
-      setError(errorMessage);
+      const specificFieldErr = err.response?.data?.password?.[0] || 
+                              err.response?.data?.username?.[0] ||
+                              err.response?.data?.email?.[0];
+      setError(specificFieldErr || getErrorMessage(err, { action: 'register', fallback: 'Échec de l\'inscription. Veuillez vérifier les informations renseignées.' }));
     } finally {
       setLoading(false);
     }

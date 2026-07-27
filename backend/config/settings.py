@@ -11,8 +11,12 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file.
+# Use explicit path + override=True so that:
+#   1. The correct backend/.env is always loaded regardless of cwd.
+#   2. Any placeholder values already present in the shell environment
+#      are overridden by the real values in the file.
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-this-in-production')
@@ -150,10 +154,13 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,
 CORS_ALLOW_CREDENTIALS = True
 
 # IBM watsonx.ai / Granite AI settings
+# langchain_client.py reads WATSONX_URL first, then WATSONX_API_URL as fallback.
+# Both are exposed here so Django settings mirrors what the ai_engine actually reads.
 WATSONX_API_KEY = os.getenv('WATSONX_API_KEY', '')
 WATSONX_PROJECT_ID = os.getenv('WATSONX_PROJECT_ID', '')
+WATSONX_URL = os.getenv('WATSONX_URL', '')
 WATSONX_API_URL = os.getenv('WATSONX_API_URL', 'https://us-south.ml.cloud.ibm.com')
-GRANITE_MODEL_ID = os.getenv('GRANITE_MODEL_ID', 'ibm/granite-13b-chat-v2')
+GRANITE_MODEL_ID = os.getenv('GRANITE_MODEL_ID', 'ibm/granite-4-h-small')
 
 # Logging
 LOGGING = {

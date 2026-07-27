@@ -15,21 +15,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.services import get_user_projects_service
 from apps.tasks.models import Task
 from apps.analytics.models import WorkloadSnapshot, RiskScore
 from apps.recommendations.models import Recommendation
 from apps.notifications.models import Notification
 from apps.teams.models import TeamMembership
 
-
 def _get_scoped_projects(user):
-    """Return projects visible to this user per BR-7.1."""
-    if user.role in ('executive', 'admin'):
-        return Project.objects.all().select_related('owner', 'team')
-    team_ids = TeamMembership.objects.filter(user=user).values_list('team_id', flat=True)
-    return Project.objects.filter(
-        Q(owner=user) | Q(team_id__in=team_ids)
-    ).distinct().select_related('owner', 'team')
+    """
+    Return projects visible to this user per BR-7.1.
+    DEPRECATED: Use get_user_projects_service() from projects.services instead.
+    Kept for backward compatibility during refactor.
+    """
+    return get_user_projects_service(user)
+
 
 
 def _risk_for_project(project):

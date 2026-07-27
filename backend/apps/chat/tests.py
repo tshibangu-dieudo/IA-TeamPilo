@@ -146,7 +146,7 @@ class ProcessChatQueryServiceTest(TestCase):
         )
         self.assertIsNotNone(r['conversation_id'])
 
-    @patch('ai_engine.chat_service.generate_chat_response', return_value=('Fallback answer.', 'fallback_template'))
+    @patch('ai_engine.router.route_chat_request', return_value=('Fallback answer.', 'fallback_template', 'TEAMPILOT_DATA'))
     def test_fallback_path_stored_correctly(self, mock_ai):
         result = process_chat_query(self.pm, 'Any question?', project=self.project)
         self.assertEqual(result['generated_by'], 'fallback_template')
@@ -206,18 +206,323 @@ class DataSnapshotScopingTest(TestCase):
 
     def test_project_snapshot_contains_project_info(self):
         snapshot = _build_data_snapshot(self.pm, project=self.project)
-        self.assertIn('project', snapshot)
-        self.assertEqual(snapshot['project']['name'], self.project.name)
+        self.assertIn('projects', snapshot)
+        self.assertGreater(len(snapshot['projects']), 0)
+        self.assertEqual(snapshot['projects'][0]['name'], self.project.name)
 
     def test_member_snapshot_contains_only_own_tasks(self):
         make_task(self.project, assignee=self.member)
         snapshot = _build_data_snapshot(self.member)
-        self.assertIn('my_tasks', snapshot)
+        self.assertIn('tasks', snapshot)
+        self.assertGreater(len(snapshot['tasks']), 0)
         self.assertNotIn('projects', snapshot)
 
     def test_executive_cross_project_snapshot_contains_projects(self):
         snapshot = _build_data_snapshot(self.exec_user)
         self.assertIn('projects', snapshot)
+
+
+class EnrichedSnapshotTest(TestCase):
+    """Tests for enriched _build_data_snapshot with teams, members, tasks categorization."""
+
+    def setUp(self):
+        from apps.analytics.models import WorkloadSnapshot, RiskScore
+        from apps.recommendations.models import Recommendation
+        from apps.accounts.models import UserSkill
+        
+        self.pm = make_user('enrich_pm')
+        self.admin = make_user('enrich_admin', role='admin')
+        self.exec_user = make_user('enrich_exec', role='executive')
+        self.member = make_user('enrich_member', role='member')
+        self.team = make_team('Enrich Team')
+        TeamMembership.objects.create(team=self.team, user=self.pm, role='lead')
+        TeamMembership.objects.create(team=self.team, user=self.member, role='member')
+        self.project = make_project(self.pm, self.team, name='Enrich Project')
+        
+        # Create workload snapshots
+        today = timezone.now()
+        WorkloadSnapshot.objects.create(
+            user=self.member,
+            project=self.project,
+            workload_percentage=Decimal('135.00'),
+            status='overloaded',
+            computed_at=today,
+        )
+        WorkloadSnapshot.objects.create(
+            user=self.pm,
+            project=self.project,
+            workload_percentage=Decimal('75.00'),
+            status='balanced',
+            computed_at=today,
+        )
+        
+        # Create risk score
+        RiskScore.objects.create(
+            project=self.project,
+            score=Decimal('7.5'),
+            level='high',
+            overload_factor=Decimal('0.4'),
+            blocked_task_factor=Decimal('0.2'),
+            deadline_proximity_factor=Decimal('0.1'),
+            historical_velocity_factor=Decimal('0.0'),
+            explanation_text='High overload and blocked tasks',
+            computed_at=today,
+        )
+        
+        # Create tasks
+        self.blocked_task = Task.objects.create(
+            project=self.project,
+            assignee=self.member,
+            title='Blocked Task',
+            description='',
+            priority='high',
+            status='blocked',
+            blocked_reason='Waiting for API access',
+            estimated_effort_hours=Decimal('8.00'),
+            deadline=timezone.now().date() + timedelta(days=7),
+            updated_at=timezone.now() - timedelta(days=3),
+        )
+        self.overdue_task = Task.objects.create(
+            project=self.project,
+            assignee=self.member,
+            title='Overdue Task',
+            description='',
+            priority='critical',
+            status='in_progress',
+            estimated_effort_hours=Decimal('8.00'),
+            deadline=timezone.now().date() - timedelta(days=2),
+        )
+        self.high_priority_task = Task.objects.create(
+            project=self.project,
+            assignee=self.pm,
+            title='High Priority Task',
+            description='',
+            priority='high',
+            status='todo',
+            estimated_effort_hours=Decimal('8.00'),
+            deadline=timezone.now().date() + timedelta(days=14),
+        )
+        self.done_task = Task.objects.create(
+            project=self.project,
+            assignee=self.member,
+            title='Done Task',
+            description='',
+            priority='medium',
+            status='done',
+            estimated_effort_hours=Decimal('8.00'),
+            deadline=timezone.now().date() + timedelta(days=7),
+        )
+        
+        # Create skills (using UserSkill directly with skill_name string)
+        UserSkill.objects.create(user=self.member, skill_name='Python', proficiency_level=4)
+        UserSkill.objects.create(user=self.pm, skill_name='React', proficiency_level=3)
+        
+        # Create recommendation
+        Recommendation.objects.create(
+            project=self.project,
+            task=self.blocked_task,
+            title='Reassign blocked task',
+            current_assignee=self.member,
+            suggested_assignee=self.pm,
+            status='pending',
+            confidence_score=85,  # 0-100 integer scale
+            explanation='PM has availability and required skills',
+        )
+
+    def test_snapshot_includes_all_categories_for_project(self):
+        """Snapshot should include metadata, projects, teams, members, tasks, analytics."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('metadata', snapshot)
+        self.assertIn('projects', snapshot)
+        self.assertIn('teams', snapshot)
+        self.assertIn('members', snapshot)
+        self.assertIn('tasks', snapshot)
+        self.assertIn('analytics', snapshot)
+
+    def test_snapshot_excludes_empty_categories(self):
+        """If no tasks exist, tasks section should not appear."""
+        new_pm = make_user('new_pm')
+        new_team = make_team('New Team')
+        new_project = make_project(new_pm, new_team, name='Empty Project')
+        
+        snapshot = _build_data_snapshot(new_pm, project=new_project)
+        
+        self.assertNotIn('tasks', snapshot)
+        self.assertNotIn('analytics', snapshot)
+
+    def test_member_scoping_isolation(self):
+        """Member should never see other team members' data or other teams' data."""
+        snapshot = _build_data_snapshot(self.member)
+        
+        # Should see only own tasks
+        self.assertIn('tasks', snapshot)
+        self.assertIn('my_tasks', snapshot['tasks'])
+        
+        # Should see own member data only
+        self.assertIn('members', snapshot)
+        self.assertEqual(len(snapshot['members']), 1)
+        self.assertEqual(snapshot['members'][0]['name'], self.member.username)
+        
+        # Should not see projects list
+        self.assertNotIn('projects', snapshot)
+
+    def test_pm_scoping_owned_projects(self):
+        """PM should see projects they own and their teams."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('projects', snapshot)
+        self.assertEqual(snapshot['projects'][0]['name'], 'Enrich Project')
+        self.assertEqual(snapshot['projects'][0]['owner'], self.pm.username)
+
+    def test_admin_executive_full_visibility(self):
+        """Admin and Executive should see all projects."""
+        admin_snapshot = _build_data_snapshot(self.admin)
+        exec_snapshot = _build_data_snapshot(self.exec_user)
+        
+        self.assertIn('projects', admin_snapshot)
+        self.assertIn('projects', exec_snapshot)
+        self.assertIn('organization', admin_snapshot)
+        self.assertIn('organization', exec_snapshot)
+
+    def test_per_status_task_counts(self):
+        """Verify tasks.summary includes todo, in_progress, blocked, done counts."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('tasks', snapshot)
+        self.assertIn('summary', snapshot['tasks'])
+        summary = snapshot['tasks']['summary']
+        
+        self.assertEqual(summary['todo'], 1)  # high_priority_task
+        self.assertEqual(summary['in_progress'], 1)  # overdue_task
+        self.assertEqual(summary['blocked'], 1)  # blocked_task
+        self.assertEqual(summary['done'], 1)  # done_task
+        self.assertEqual(summary['total_open'], 3)
+
+    def test_blocked_tasks_categorization(self):
+        """Blocked tasks should appear in tasks.blocked with days_blocked."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('tasks', snapshot)
+        self.assertIn('blocked', snapshot['tasks'])
+        
+        blocked = snapshot['tasks']['blocked']
+        self.assertEqual(len(blocked), 1)
+        self.assertEqual(blocked[0]['title'], 'Blocked Task')
+        self.assertEqual(blocked[0]['blocked_reason'], 'Waiting for API access')
+        # Days blocked might be 0 in fast test execution, just check it exists
+        self.assertIn('days_blocked', blocked[0])
+        self.assertGreaterEqual(blocked[0]['days_blocked'], 0)
+
+    def test_overdue_tasks_categorization(self):
+        """Overdue tasks should appear in tasks.overdue with days_overdue."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('tasks', snapshot)
+        self.assertIn('overdue', snapshot['tasks'])
+        
+        overdue = snapshot['tasks']['overdue']
+        self.assertEqual(len(overdue), 1)
+        self.assertEqual(overdue[0]['title'], 'Overdue Task')
+        self.assertGreaterEqual(overdue[0]['days_overdue'], 2)
+
+    def test_high_priority_tasks_categorization(self):
+        """High priority tasks should appear in tasks.high_priority."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('tasks', snapshot)
+        self.assertIn('high_priority', snapshot['tasks'])
+        
+        high_priority = snapshot['tasks']['high_priority']
+        # Should include both blocked_task (high) and high_priority_task (high)
+        self.assertGreaterEqual(len(high_priority), 1)
+        priorities = [t['priority'] for t in high_priority]
+        self.assertTrue(all(p in ['high', 'critical'] for p in priorities))
+
+    def test_members_include_workload_and_skills(self):
+        """Members should include workload_pct, workload_status, and skills."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('members', snapshot)
+        member_data = next(m for m in snapshot['members'] if m['name'] == self.member.username)
+        
+        self.assertEqual(member_data['workload_pct'], 135.0)
+        self.assertEqual(member_data['workload_status'], 'overloaded')
+        self.assertIn('skills', member_data)
+        self.assertEqual(len(member_data['skills']), 1)
+        self.assertEqual(member_data['skills'][0]['name'], 'Python')
+
+    def test_analytics_includes_risk_factors(self):
+        """Analytics should include risk score with factor breakdown."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('analytics', snapshot)
+        self.assertIn('risk_score', snapshot['analytics'])
+        
+        risk = snapshot['analytics']['risk_score']
+        self.assertEqual(risk['score'], 7.5)
+        self.assertEqual(risk['level'], 'high')
+        self.assertEqual(risk['overload_factor'], 0.4)
+        self.assertEqual(risk['blocked_task_factor'], 0.2)
+        self.assertEqual(risk['deadline_proximity_factor'], 0.1)
+
+    def test_analytics_includes_recommendations_with_reason(self):
+        """Analytics should include pending recommendations with reason."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('analytics', snapshot)
+        self.assertIn('recommendations', snapshot['analytics'])
+        
+        recommendations = snapshot['analytics']['recommendations']
+        self.assertEqual(len(recommendations), 1)
+        self.assertEqual(recommendations[0]['title'], 'Reassign blocked task')
+        self.assertEqual(recommendations[0]['confidence_score'], 85)
+        self.assertIn('PM has availability', recommendations[0]['reason'])
+
+    def test_teams_include_member_count_and_lead(self):
+        """Teams should include member_count and lead username."""
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('teams', snapshot)
+        team = snapshot['teams'][0]
+        
+        self.assertEqual(team['name'], 'Enrich Team')
+        self.assertEqual(team['member_count'], 2)
+        self.assertEqual(team['lead'], self.pm.username)
+
+    def test_performance_limits_respected(self):
+        """Snapshot should respect limits: 10 tasks/category, 15 projects cross-project."""
+        # Create 15 tasks in each category (should be limited to 10)
+        for i in range(15):
+            Task.objects.create(
+                project=self.project,
+                assignee=self.member,
+                title=f'Blocked Task {i}',
+                priority='high',
+                status='blocked',
+                blocked_reason='Test',
+                estimated_effort_hours=Decimal('8.00'),
+                deadline=timezone.now().date() + timedelta(days=7),
+            )
+        
+        snapshot = _build_data_snapshot(self.pm, project=self.project)
+        
+        self.assertIn('tasks', snapshot)
+        self.assertIn('blocked', snapshot['tasks'])
+        # Should be limited to 10
+        self.assertLessEqual(len(snapshot['tasks']['blocked']), 10)
+
+    def test_cross_project_organization_summary(self):
+        """Cross-project snapshot should include organization summary for admin/exec/pm."""
+        snapshot = _build_data_snapshot(self.admin)
+        
+        self.assertIn('organization', snapshot)
+        org = snapshot['organization']
+        
+        self.assertIn('total_projects', org)
+        self.assertIn('active_projects', org)
+        self.assertIn('total_teams', org)
+        self.assertIn('total_members', org)
 
 
 # ---------------------------------------------------------------------------

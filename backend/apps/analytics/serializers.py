@@ -11,6 +11,7 @@ class WorkloadSnapshotSerializer(serializers.ModelSerializer):
     Serializer for WorkloadSnapshot.
     """
     user_full_name = serializers.CharField(source='user.full_name', read_only=True)
+    workload_percentage = serializers.FloatField()  # Ensure it's serialized as float, not string
 
     class Meta:
         model = WorkloadSnapshot
@@ -30,6 +31,12 @@ class RiskScoreSerializer(serializers.ModelSerializer):
     Serializer for RiskScore.
     """
     project_name = serializers.CharField(source='project.name', read_only=True)
+    # Ensure decimal fields are serialized as floats, not strings
+    score = serializers.FloatField()
+    overload_factor = serializers.FloatField()
+    blocked_task_factor = serializers.FloatField()
+    deadline_proximity_factor = serializers.FloatField()
+    historical_velocity_factor = serializers.FloatField()
 
     class Meta:
         model = RiskScore

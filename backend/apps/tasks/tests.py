@@ -67,7 +67,7 @@ def make_task(project, assignee=None, status='todo', priority='medium',
         priority=priority,
         status=status,
         estimated_effort_hours=Decimal('8.00'),
-        deadline=date.today() + timedelta(days=deadline_offset_days),
+        deadline=timezone.now().date() + timedelta(days=deadline_offset_days),
     )
 
 

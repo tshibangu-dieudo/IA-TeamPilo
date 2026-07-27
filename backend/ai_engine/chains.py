@@ -65,3 +65,19 @@ def get_chat_assistant_chain(llm):
 
     prompt = PromptTemplate.from_template(_load_prompt("chat_prompt.txt"))
     return prompt | llm | StrOutputParser()
+
+
+def get_general_knowledge_chain(llm):
+    """
+    Chain 4 — General Knowledge Assistant.
+    Answers general project management questions without data snapshot.
+    Used when intent classification determines the question is not about TeamPilot data.
+
+    Input variables expected by the prompt template:
+        question            — the user's current question
+    """
+    from langchain_core.prompts import PromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+
+    prompt = PromptTemplate.from_template(_load_prompt("general_knowledge_prompt.txt"))
+    return prompt | llm | StrOutputParser()

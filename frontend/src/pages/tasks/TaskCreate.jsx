@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { tasksAPI } from '../../api/tasks';
 import { projectsAPI } from '../../api/projects';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function TaskCreate() {
   const { projectId } = useParams();
@@ -36,7 +37,7 @@ export default function TaskCreate() {
       const response = await projectsAPI.get(projectId);
       setProject(response.data);
     } catch (err) {
-      setError('Failed to load project');
+      setError(getErrorMessage(err, { resource: 'project', fallback: 'Impossible de charger le projet associé.' }));
     } finally {
       setLoading(false);
     }
@@ -44,11 +45,8 @@ export default function TaskCreate() {
 
   const loadTeamMembers = async () => {
     try {
-      // Get team memberships for the project's team
       const response = await projectsAPI.get(projectId);
       const teamId = response.data.team;
-      // For now, we'll need to get team members from the teams API
-      // This is a simplified approach - in production, you'd have a dedicated endpoint
     } catch (err) {
       console.error('Failed to load team members');
     }
@@ -60,13 +58,24 @@ export default function TaskCreate() {
       await tasksAPI.createProjectTask(projectId, newTask);
       navigate(`/projects/${projectId}`);
     } catch (err) {
-      setError('Failed to create task');
+      setError(getErrorMessage(err, { action: 'create_task', fallback: 'Impossible de créer la tâche.' }));
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return <div className="text-center py-8">Chargement...</div>;
 
-  if (!project) return <div className="text-center py-8">Project not found</div>;
+  if (error || !project) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button onClick={() => navigate('/projects')} className="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+          ← Retour aux projets
+        </button>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          {error || "Le projet spécifié n'existe pas ou vous n'y avez pas accès."}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

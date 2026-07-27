@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamsAPI } from '../../api/teams';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function TeamsList() {
   const [teams, setTeams] = useState([]);
@@ -25,7 +26,7 @@ export default function TeamsList() {
       const data = response.data;
       setTeams(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
-      setError('Failed to load teams');
+      setError(getErrorMessage(err, { resource: 'team', fallback: 'Impossible de charger vos équipes.' }));
     } finally {
       setLoading(false);
     }
@@ -39,11 +40,11 @@ export default function TeamsList() {
       setNewTeam({ name: '', description: '' });
       loadTeams();
     } catch (err) {
-      setError('Failed to create team');
+      setError(getErrorMessage(err, { action: 'create', fallback: 'Impossible de créer l\'équipe.' }));
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading teams...</div>;
+  if (loading) return <div className="text-center py-8">Chargement des équipes...</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

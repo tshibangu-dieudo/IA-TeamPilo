@@ -204,3 +204,36 @@ class TeamsAPITest(TestCase):
         # The endpoint uses DRF pagination — unwrap 'results' if present
         results = response.data.get('results', response.data)
         self.assertEqual(len(results), 1)
+
+
+class TeamScopeIsolationTest(TestCase):
+    """BR-7.1: scope violations on teams return 404, not 403.
+    Matches the pattern already used in projects, tasks, recommendations,
+    notifications, analytics, accounts, and chat apps."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user_a = User.objects.create_user(
+            username='scope_user_a', email='a@scope.test', password='pass123'
+        )
+        self.user_b = User.objects.create_user(
+            username='scope_user_b', email='b@scope.test', password='pass123'
+        )
+        # user_a owns a team and is its only member
+        self.team_a = Team.objects.create(name='Team A — Scope Test')
+        TeamMembership.objects.create(team=self.team_a, user=self.user_a, role='lead')
+
+    def test_non_member_get_team_returns_404(self):
+        """BR-7.1: user_b cannot see user_a's team — 404 not 403."""
+        self.client.force_authenticate(user=self.user_b)
+        response = self.client.get(f'/api/teams/teams/{self.team_a.id}/')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_non_member_not_listed_in_my_teams(self):
+        """BR-7.1: user_b's /my-teams/ does not include user_a's team."""
+        self.client.force_authenticate(user=self.user_b)
+        response = self.client.get('/api/teams/my-teams/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data)
+        team_ids = [str(t['id']) for t in results]
+        self.assertNotIn(str(self.team_a.id), team_ids)

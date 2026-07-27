@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { teamsAPI } from '../../api/teams';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function TeamDetail() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ export default function TeamDetail() {
       const response = await teamsAPI.get(id);
       setTeam(response.data);
     } catch (err) {
-      setError('Failed to load team details');
+      setError(getErrorMessage(err, { resource: 'team', fallback: 'Impossible de charger les détails de l\'équipe.' }));
     } finally {
       setLoading(false);
     }
@@ -43,7 +44,7 @@ export default function TeamDetail() {
       setNewMember({ user_id: '', role: 'member' });
       loadTeam();
     } catch (err) {
-      setError('Failed to add member');
+      setError(getErrorMessage(err, { action: 'create', fallback: 'Impossible d\'ajouter ce membre.' }));
     }
   };
 
@@ -54,7 +55,7 @@ export default function TeamDetail() {
       await teamsAPI.deleteMembership(membershipId);
       loadTeam();
     } catch (err) {
-      setError('Failed to remove member');
+      setError(getErrorMessage(err, { action: 'delete', fallback: 'Impossible de retirer ce membre.' }));
     }
   };
 
@@ -63,13 +64,24 @@ export default function TeamDetail() {
       await teamsAPI.updateMembership(membershipId, { role: newRole });
       loadTeam();
     } catch (err) {
-      setError('Failed to update role');
+      setError(getErrorMessage(err, { action: 'update', fallback: 'Impossible de modifier le rôle.' }));
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading team details...</div>;
+  if (loading) return <div className="text-center py-8">Chargement des détails de l'équipe...</div>;
 
-  if (!team) return <div className="text-center py-8">Team not found</div>;
+  if (error || !team) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button onClick={() => navigate('/teams')} className="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+          ← Retour aux équipes
+        </button>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          {error || "Cette équipe n'existe pas ou vous n'y avez pas accès."}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -139,7 +151,7 @@ export default function TeamDetail() {
           </div>
         )}
 
-        {team.memberships.length === 0 ? (
+        {(team.memberships ?? []).length === 0 ? (
           <p className="text-gray-500 text-center py-4">No members yet</p>
         ) : (
           <div className="overflow-x-auto">
@@ -164,7 +176,7 @@ export default function TeamDetail() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {team.memberships.map((membership) => (
+                {(team.memberships ?? []).map((membership) => (
                   <tr key={membership.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

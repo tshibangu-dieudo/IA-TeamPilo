@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tasksAPI } from '../../api/tasks';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function TaskDetail() {
   const { id } = useParams();
@@ -42,7 +43,7 @@ export default function TaskDetail() {
         deadline: response.data.deadline
       });
     } catch (err) {
-      setError('Failed to load task details');
+      setError(getErrorMessage(err, { resource: 'task', fallback: 'Impossible de charger les détails de la tâche.' }));
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,9 @@ export default function TaskDetail() {
   const loadHistory = async () => {
     try {
       const response = await tasksAPI.getHistory(id);
-      setHistory(response.data);
+      // History endpoint may return paginated { count, results: [...] } or a raw array.
+      const data = response.data;
+      setHistory(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       console.error('Failed to load task history');
     }
@@ -60,7 +63,9 @@ export default function TaskDetail() {
   const loadDependencies = async () => {
     try {
       const response = await tasksAPI.getDependencies(id);
-      setDependencies(response.data);
+      // Dependencies endpoint may return paginated { count, results: [...] } or a raw array.
+      const data = response.data;
+      setDependencies(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       console.error('Failed to load dependencies');
     }
@@ -73,7 +78,7 @@ export default function TaskDetail() {
       setShowEditForm(false);
       loadTask();
     } catch (err) {
-      setError('Failed to update task');
+      setError(getErrorMessage(err, { action: 'update', fallback: 'Impossible de mettre à jour la tâche.' }));
     }
   };
 
@@ -83,7 +88,7 @@ export default function TaskDetail() {
       loadTask();
       loadHistory();
     } catch (err) {
-      setError('Failed to update task status');
+      setError(getErrorMessage(err, { action: 'update', fallback: 'Impossible de modifier le statut.' }));
     }
   };
 
@@ -95,7 +100,7 @@ export default function TaskDetail() {
       setNewDependencyId('');
       loadDependencies();
     } catch (err) {
-      setError('Failed to add dependency');
+      setError(getErrorMessage(err, { action: 'create', fallback: 'Impossible d\'ajouter cette dépendance.' }));
     }
   };
 
@@ -104,7 +109,7 @@ export default function TaskDetail() {
       await tasksAPI.removeDependency(id, depId);
       loadDependencies();
     } catch (err) {
-      setError('Failed to remove dependency');
+      setError(getErrorMessage(err, { action: 'delete', fallback: 'Impossible de supprimer cette dépendance.' }));
     }
   };
 
@@ -119,9 +124,20 @@ export default function TaskDetail() {
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading task details...</div>;
+  if (loading) return <div className="text-center py-8">Chargement des détails de la tâche...</div>;
 
-  if (!task) return <div className="text-center py-8">Task not found</div>;
+  if (error || !task) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button onClick={() => navigate('/tasks')} className="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+          ← Retour aux tâches
+        </button>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          {error || "Cette tâche n'existe pas ou vous n'y avez pas accès."}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

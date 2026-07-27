@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectsAPI } from '../../api/projects';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -38,7 +39,7 @@ export default function ProjectDetail() {
         status: response.data.status
       });
     } catch (err) {
-      setError('Failed to load project details');
+      setError(getErrorMessage(err, { resource: 'project', fallback: 'Impossible de charger les détails du projet.' }));
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,7 @@ export default function ProjectDetail() {
       setShowEditForm(false);
       loadProject();
     } catch (err) {
-      setError('Failed to update project');
+      setError(getErrorMessage(err, { action: 'update', fallback: 'Impossible de mettre à jour le projet.' }));
     }
   };
 
@@ -62,13 +63,24 @@ export default function ProjectDetail() {
       await projectsAPI.delete(id);
       navigate('/projects');
     } catch (err) {
-      setError('Failed to delete project');
+      setError(getErrorMessage(err, { action: 'delete', fallback: 'Impossible de supprimer le projet.' }));
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading project details...</div>;
+  if (loading) return <div className="text-center py-8">Chargement des détails du projet...</div>;
 
-  if (!project) return <div className="text-center py-8">Project not found</div>;
+  if (error || !project) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button onClick={() => navigate('/projects')} className="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+          ← Retour aux projets
+        </button>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          {error || "Ce projet n'existe pas ou vous n'y avez pas accès."}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

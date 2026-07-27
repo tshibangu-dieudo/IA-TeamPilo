@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { recommendationsAPI } from '../../api/recommendations';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function RecommendationDetail() {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function RecommendationDetail() {
   const [error, setError] = useState('');
   const [actioning, setActioning] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
+  const [actionError, setActionError] = useState(''); // separate from page-level error to avoid unmounting the full detail view
 
   useEffect(() => {
     loadRecommendationDetail();
@@ -20,7 +22,7 @@ export default function RecommendationDetail() {
       const response = await recommendationsAPI.get(id);
       setRecommendation(response.data);
     } catch (err) {
-      setError('Failed to load recommendation details');
+      setError(getErrorMessage(err, { resource: 'recommendation', fallback: 'Impossible de charger les détails de cette recommandation.' }));
     } finally {
       setLoading(false);
     }
@@ -29,15 +31,16 @@ export default function RecommendationDetail() {
   const handleAccept = async () => {
     if (!recommendation) return;
     setActioning(true);
-    setActionStatus('Accepting and reassigning...');
+    setActionStatus('Acceptation et réaffectation en cours...');
+    setActionError('');
     try {
       await recommendationsAPI.accept(id);
-      setActionStatus('Reassigned successfully ✓');
+      setActionStatus('Réaffecté avec succès ✓');
       setTimeout(() => {
         navigate('/recommendations');
       }, 1500);
     } catch (err) {
-      setError('Failed to accept recommendation');
+      setActionError(getErrorMessage(err, { action: 'accept_recommendation' }));
       setActioning(false);
       setActionStatus('');
     }
@@ -46,15 +49,16 @@ export default function RecommendationDetail() {
   const handleDismiss = async () => {
     if (!recommendation) return;
     setActioning(true);
-    setActionStatus('Dismissing recommendation...');
+    setActionStatus('Rejet de la recommandation...');
+    setActionError('');
     try {
       await recommendationsAPI.dismiss(id);
-      setActionStatus('Recommendation dismissed');
+      setActionStatus('Recommandation rejetée');
       setTimeout(() => {
         navigate('/recommendations');
       }, 1500);
     } catch (err) {
-      setError('Failed to dismiss recommendation');
+      setActionError(getErrorMessage(err, { action: 'dismiss_recommendation' }));
       setActioning(false);
       setActionStatus('');
     }
@@ -86,7 +90,7 @@ export default function RecommendationDetail() {
           ← Back to Inbox
         </button>
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-          {error || 'Recommendation not found'}
+          {error || 'Recommandation introuvable'}
         </div>
       </div>
     );
@@ -221,13 +225,19 @@ export default function RecommendationDetail() {
 
           {/* Accept / Dismiss controls */}
           {isPending && (
-            <div className="flex items-center justify-end gap-4 border-t border-gray-100 pt-6 mt-8">
+            <div className="flex flex-col items-end gap-3 border-t border-gray-100 pt-6 mt-8">
+              {/* Inline action error — does NOT flip the page to the error view */}
+              {actionError && (
+                <div className="w-full text-sm text-red-700 bg-red-50 border border-red-200 px-4 py-2 rounded-lg">
+                  {actionError}
+                </div>
+              )}
               {actionStatus ? (
                 <div className="text-sm font-bold text-indigo-700 bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-200 animate-pulse">
                   {actionStatus}
                 </div>
               ) : (
-                <>
+                <div className="flex items-center gap-4">
                   <button
                     onClick={handleDismiss}
                     disabled={actioning}
@@ -242,7 +252,7 @@ export default function RecommendationDetail() {
                   >
                     Accept & Apply Reassignment
                   </button>
-                </>
+                </div>
               )}
             </div>
           )}

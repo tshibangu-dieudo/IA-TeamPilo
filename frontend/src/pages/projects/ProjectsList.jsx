@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI } from '../../api/projects';
 import { teamsAPI } from '../../api/teams';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function ProjectsList() {
   const [projects, setProjects] = useState([]);
@@ -34,7 +35,7 @@ export default function ProjectsList() {
       const data = response.data;
       setProjects(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
-      setError('Failed to load projects');
+      setError(getErrorMessage(err, { resource: 'project', fallback: 'Impossible de charger les projets.' }));
     } finally {
       setLoading(false);
     }
@@ -46,7 +47,7 @@ export default function ProjectsList() {
       const data = response.data;
       setTeams(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
-      setError('Failed to load teams');
+      setError(getErrorMessage(err, { resource: 'team', fallback: 'Impossible de charger les équipes.' }));
     }
   };
 
@@ -58,7 +59,7 @@ export default function ProjectsList() {
       setNewProject({ name: '', description: '', start_date: '', end_date: '', team: '' });
       loadProjects();
     } catch (err) {
-      setError('Failed to create project');
+      setError(getErrorMessage(err, { action: 'create', fallback: 'Impossible de créer le projet.' }));
     }
   };
 

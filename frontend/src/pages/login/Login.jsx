@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ export default function Login() {
       await login(formData);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      setError(getErrorMessage(err, { action: 'login', fallback: 'Échec de la connexion. Veuillez vérifier vos identifiants.' }));
     } finally {
       setLoading(false);
     }

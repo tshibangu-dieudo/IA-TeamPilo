@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { recommendationsAPI } from '../../api/recommendations';
 import { projectsAPI } from '../../api/projects';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function RecommendationsList() {
   const [recommendations, setRecommendations] = useState([]);
@@ -12,6 +13,8 @@ export default function RecommendationsList() {
   const [generating, setGenerating] = useState(false);
   const [actioningId, setActioningId] = useState(null); // track which card is being accepted/dismissed
   const [successMessages, setSuccessMessages] = useState({}); // track inline status updates per card
+  const [cardErrors, setCardErrors] = useState({}); // track inline errors per card (Issue 2)
+  const [successBanner, setSuccessBanner] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -23,7 +26,8 @@ export default function RecommendationsList() {
   const loadProjects = async () => {
     try {
       const response = await projectsAPI.getMyProjects();
-      setProjects(response.data);
+      const data = response.data;
+      setProjects(Array.isArray(data) ? data : (data.results ?? []));
     } catch (err) {
       console.error('Failed to load projects', err);
     }
@@ -31,6 +35,7 @@ export default function RecommendationsList() {
 
   const loadRecommendations = async () => {
     setLoading(true);
+    setError('');
     try {
       let response;
       if (selectedProjectId) {
@@ -44,9 +49,7 @@ export default function RecommendationsList() {
         );
       }
       
-      // If history tab, filter out pending recommendations
       let data = response.data;
-      // Handle paginated ({ count, results }) and flat array responses
       if (!Array.isArray(data)) {
         data = data.results ?? [];
       }
@@ -56,7 +59,7 @@ export default function RecommendationsList() {
       
       setRecommendations(data);
     } catch (err) {
-      setError('Failed to load recommendations');
+      setError(getErrorMessage(err, { resource: 'recommendation', fallback: 'Impossible de charger les recommandations.' }));
     } finally {
       setLoading(false);
     }
@@ -64,16 +67,24 @@ export default function RecommendationsList() {
 
   const handleGenerate = async () => {
     if (!selectedProjectId) {
-      setError('Please select a project to run AI diagnostics.');
+      setError('Veuillez sélectionner un projet spécifique pour exécuter les diagnostics IA.');
       return;
     }
     setGenerating(true);
     setError('');
+    setSuccessBanner('');
     try {
-      await recommendationsAPI.generate(selectedProjectId);
+      const res = await recommendationsAPI.generate(selectedProjectId);
       await loadRecommendations();
+      const data = res.data;
+      const count = Array.isArray(data) ? data.length : (data?.results?.length ?? 0);
+      if (count === 0) {
+        setSuccessBanner('Diagnostic exécuté avec succès : aucune nouvelle recommandation détectée.');
+      } else {
+        setSuccessBanner(`Diagnostic exécuté avec succès : ${count} nouvelle(s) recommandation(s) générée(s).`);
+      }
     } catch (err) {
-      setError('Failed to run diagnostics or no new recommendations found.');
+      setError(getErrorMessage(err, { action: 'generate_recommendations' }));
     } finally {
       setGenerating(false);
     }
@@ -81,16 +92,16 @@ export default function RecommendationsList() {
 
   const handleAccept = async (id, suggestedName) => {
     setActioningId(id);
-    setError('');
+    setCardErrors(prev => ({ ...prev, [id]: null }));
     try {
       await recommendationsAPI.accept(id);
-      setSuccessMessages(prev => ({ ...prev, [id]: `Reassigned to ${suggestedName} ✓` }));
-      // Remove from list after a short delay for visual transition
+      setSuccessMessages(prev => ({ ...prev, [id]: `Réaffecté à ${suggestedName} ✓` }));
       setTimeout(() => {
         setRecommendations(prev => prev.filter(r => r.id !== id));
       }, 1500);
     } catch (err) {
-      setError('Failed to apply reassignment.');
+      // Inline error on the card (Issue 1 & Issue 2)
+      setCardErrors(prev => ({ ...prev, [id]: getErrorMessage(err, { action: 'accept_recommendation' }) }));
     } finally {
       setActioningId(null);
     }
@@ -98,15 +109,16 @@ export default function RecommendationsList() {
 
   const handleDismiss = async (id) => {
     setActioningId(id);
-    setError('');
+    setCardErrors(prev => ({ ...prev, [id]: null }));
     try {
       await recommendationsAPI.dismiss(id);
-      setSuccessMessages(prev => ({ ...prev, [id]: 'Recommendation dismissed' }));
+      setSuccessMessages(prev => ({ ...prev, [id]: 'Recommandation rejetée' }));
       setTimeout(() => {
         setRecommendations(prev => prev.filter(r => r.id !== id));
       }, 1500);
     } catch (err) {
-      setError('Failed to dismiss recommendation.');
+      // Inline error on the card (Issue 1 & Issue 2)
+      setCardErrors(prev => ({ ...prev, [id]: getErrorMessage(err, { action: 'dismiss_recommendation' }) }));
     } finally {
       setActioningId(null);
     }
@@ -140,13 +152,13 @@ export default function RecommendationsList() {
         
         {/* Actions Controls */}
         <div className="mt-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="w-full sm:w-64">
+          <div className="w-full sm:w-80">
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             >
-              <option value="">All Scoped Projects</option>
+              <option value="">Tous les projets (sélectionner un projet pour diagnostic)</option>
               {projects.map((proj) => (
                 <option key={proj.id} value={proj.id}>{proj.name}</option>
               ))}
@@ -155,9 +167,10 @@ export default function RecommendationsList() {
           <button
             onClick={handleGenerate}
             disabled={generating || !selectedProjectId}
+            title={!selectedProjectId ? "Veuillez sélectionner un projet spécifique pour exécuter les diagnostics IA" : "Lancer l'analyse IA sur le projet sélectionné"}
             className={`w-full sm:w-auto px-5 py-2 font-medium rounded-lg text-white shadow transition-colors flex items-center justify-center gap-2 ${
               !selectedProjectId 
-                ? 'bg-gray-600 cursor-not-allowed'
+                ? 'bg-gray-600 cursor-not-allowed opacity-75'
                 : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800'
             }`}
           >
@@ -167,18 +180,26 @@ export default function RecommendationsList() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Running Diagnostics...
+                Exécution des diagnostics...
               </>
             ) : (
-              'Run AI Diagnostics'
+              'Exécuter les diagnostics IA'
             )}
           </button>
         </div>
       </div>
 
+      {successBanner && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+          <span>{successBanner}</span>
+          <button onClick={() => setSuccessBanner('')} className="text-green-600 hover:text-green-800 text-sm font-bold">✕</button>
+        </div>
+      )}
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="text-red-500 hover:text-red-700 text-sm font-bold">✕</button>
         </div>
       )}
 
@@ -240,8 +261,8 @@ export default function RecommendationsList() {
           {recommendations.map((reco) => {
             const isAccepted = reco.status === 'accepted';
             const isDismissed = reco.status === 'dismissed';
-            const suggestedName = reco.suggested_assignee ? (reco.suggested_assignee.full_name || reco.suggested_assignee.username) : '';
-            const currentName = reco.current_assignee ? (reco.current_assignee.full_name || reco.current_assignee.username) : 'Unassigned';
+            const suggestedName = reco.suggested_assignee?.full_name || reco.suggested_assignee?.username || '';
+            const currentName = reco.current_assignee?.full_name || reco.current_assignee?.username || 'Unassigned';
             
             return (
               <div
@@ -290,7 +311,7 @@ export default function RecommendationsList() {
                   <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex-1">
                       <span className="text-xs font-semibold uppercase text-gray-400 block mb-1">Task at Hand</span>
-                      <span className="font-semibold text-gray-800 text-sm">{reco.task.title}</span>
+                      <span className="font-semibold text-gray-800 text-sm">{reco.task?.title || 'Task title unavailable'}</span>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -359,6 +380,19 @@ export default function RecommendationsList() {
                     )}
                   </div>
                 </div>
+
+                {/* Inline Card Error Display (Issue 2) */}
+                {cardErrors[reco.id] && (
+                  <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 p-3 rounded-lg flex items-center justify-between">
+                    <span>{cardErrors[reco.id]}</span>
+                    <button
+                      onClick={() => setCardErrors(prev => ({ ...prev, [reco.id]: null }))}
+                      className="text-red-500 hover:text-red-700 font-bold text-xs ml-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
