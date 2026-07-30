@@ -111,7 +111,13 @@ Full analysis: [`docs/02_Problem_Analysis.md`](docs/02_Problem_Analysis.md)
   - Full organizational visibility
   - User/team/skill management access
 
-## 4. AI Architecture
+## 4. Demo Video
+
+Watch the 3-minute demo: https://youtu.be/8m-MGyGq6EU
+
+*Note: This project was built using IBM Bob as the coding agent throughout development.*
+
+## 5. AI Architecture
 
 TeamPilot AI uses **IBM Granite** (via **watsonx.ai**) for exactly three purposes:
 
@@ -148,7 +154,7 @@ This architecture ensures that AI failures degrade explanation quality, never co
 
 Full detail: [`docs/13_AI_Architecture.md`](docs/13_AI_Architecture.md)
 
-## 5. Tech Stack
+## 6. Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -173,7 +179,7 @@ These exclusions are architectural decisions, not limitations:
 
 See [`.ai/tech-stack.md`](.ai/tech-stack.md) for full rationale.
 
-## 6. Installation
+## 7. Installation
 
 ### Prerequisites
 - Python 3.11+
@@ -252,7 +258,7 @@ npm run dev
 
 Frontend will be available at `http://localhost:5173`
 
-## 7. Demo / Try It Yourself
+## 8. Demo / Try It Yourself
 
 ### Populate Demo Data
 
@@ -301,7 +307,7 @@ This creates a realistic demo organization with:
    python manage.py seed_demo --reset
    ```
 
-## 8. Project Structure
+## 9. Project Structure
 
 ```
 IA-TeamPilot/
@@ -345,7 +351,7 @@ IA-TeamPilot/
 Detailed backend structure: [`docs/11_Backend_Architecture.md`](docs/11_Backend_Architecture.md)  
 Detailed frontend structure: [`docs/12_Frontend_Architecture.md`](docs/12_Frontend_Architecture.md)
 
-## 9. Useful Commands
+## 10. Useful Commands
 
 ### Backend
 
@@ -378,7 +384,7 @@ python manage.py recalculate_risk
 python manage.py check_blocked_tasks
 ```
 
-## 10. Test Coverage
+## 11. Test Coverage
 
 **220+ automated tests** covering:
 
@@ -401,7 +407,7 @@ pytest
 
 Test strategy: [`docs/16_Testing.md`](docs/16_Testing.md)
 
-## 11. Deployment
+## 12. Deployment
 
 Deployment configuration and production checklist: [`docs/17_Deployment.md`](docs/17_Deployment.md)
 
@@ -415,7 +421,7 @@ Deployment configuration and production checklist: [`docs/17_Deployment.md`](doc
 - Set up cron jobs for `recalculate_risk` and `check_blocked_tasks`
 - Serve frontend static files via CDN or reverse proxy (nginx)
 
-## 12. IBM watsonx Integration Details
+## 13. IBM watsonx Integration Details
 
 ### API Configuration
 
@@ -467,7 +473,7 @@ No crashes, no blocking of core CRUD operations.
 
 Full AI architecture: [`docs/13_AI_Architecture.md`](docs/13_AI_Architecture.md)
 
-## 13. Repository Organization
+## 14. Repository Organization
 
 The **`docs/` folder** contains the complete 18-chapter specification, written before implementation began.
 
@@ -477,7 +483,7 @@ See [`docs/18_GitHub_Submission.md`](docs/18_GitHub_Submission.md) for commit co
 
 The **`dev-notes/` folder** (gitignored) contains sprint reports, bug fix summaries, and audit reports from the development process — not part of the submission repository.
 
-## 14. Business Rules Reference
+## 15. Business Rules Reference
 
 Key business rules (full spec in [`docs/05_bussiness_rules.md`](docs/05_bussiness_rules.md)):
 
@@ -492,11 +498,11 @@ Key business rules (full spec in [`docs/05_bussiness_rules.md`](docs/05_bussines
 - **BR-7.1**: Data visibility scope by role (404 on violations, not 403)
 - **BR-8.1**: Circular dependency prevention
 
-## 15. Contributors
+## 16. Contributors
 
 - **Tshibangu Dieudo** — Full-stack development, AI integration, system architecture
 
-## 16. License
+## 17. License
 
 This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
 
